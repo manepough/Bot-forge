@@ -1,1 +1,83 @@
+name: Build APK
 
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'debug or release'
+        required: true
+        default: 'debug'
+        type: choice
+        options: [ debug, release ]
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install Gradle & generate wrapper
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.4-bin.zip -O /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt/
+          export GRADLE_CMD=/opt/gradle-8.4/bin/gradle
+          mkdir -p gradle/wrapper
+          $GRADLE_CMD wrapper --gradle-version 8.4
+          chmod +x gradlew
+          echo "Wrapper ready: $(ls -lh gradle/wrapper/)"
+
+      - name: Build Debug APK
+        if: ${{ github.event.inputs.build_type != 'release' }}
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Decode keystore
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore.jks
+
+      - name: Build Release APK
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        env:
+          KEYSTORE_FILE:     app/keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Collect APK
+        run: |
+          SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          DATE=$(date +'%Y%m%d-%H%M')
+          mkdir -p artifacts
+          find app/build/outputs/apk -name "*.apk" | while read apk; do
+            TYPE=$(echo "$apk" | grep -oP '(debug|release)')
+            cp "$apk" "artifacts/BotForge-${TYPE:-build}-${SHA}-${DATE}.apk"
+          done
+          ls -lh artifacts/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BotForge-APK-${{ github.run_number }}
+          path: artifacts/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
