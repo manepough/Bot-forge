@@ -1,1 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>BotForge</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0e0f14;--panel:#16181f;--border:#2a2d3a;--accent:#5865F2;--accent2:#eb459e;
+  --green:#23d18b;--red:#ed4245;--yellow:#fee75c;--text:#e3e5e8;--muted:#72767d;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border)}
+.logo{font-size:17px;font-weight:800;color:var(--accent)}.logo span{color:var(--accent2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.dot-label{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.spacer{flex:1}
+.badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.badge-green{background:#23d18b22;color:var(--green)}
+.badge-blue{background:#5865F222;color:#7289da;margin-left:4px}
 
+/* TABS */
+.tabs{display:flex;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--border);-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:10px 14px;font-size:12px;font-weight:700;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:.15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* LAYOUT */
+.body{display:flex;height:calc(100vh - 88px);overflow:hidden}
+.sidebar{width:200px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:10px 8px;gap:4px;flex-shrink:0}
+.sidebar-label{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:4px 8px;margin-top:4px}
+.bot-item{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:.15s}
+.bot-item.active,.bot-item:active{background:#1e2028;border-color:var(--border)}
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.bot-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bot-status{font-size:10px;color:var(--muted)}
+.bot-status.on{color:var(--green)}
+.bot-status.off{color:var(--red)}
+.add-bot{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;color:var(--muted);font-size:12px;border:1px dashed var(--border);background:none;cursor:pointer;width:100%;margin-top:4px;transition:.15s}
+.add-bot:active{border-color:var(--accent);color:var(--accent)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.page{display:none;flex-direction:column;gap:10px}
+.page.active{display:flex}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.card-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:12px;font-weight:700}
+.card-body{padding:12px}
+
+/* BUTTONS */
+.btn{padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s}
+.btn-green{background:var(--green);color:#0e0f14}
+.btn-red{background:var(--red);color:#fff}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-sm{padding:4px 8px;font-size:10px}
+
+/* INPUTS */
+.field{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.field label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select,.field textarea{background:#0a0b0e;border:1px solid var(--border);border-radius:6px;padding:7px 9px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:50px}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.metric{background:#0a0b0e;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.metric-val{font-size:18px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.metric-lbl{font-size:10px;color:var(--muted)}
+
+/* CONSOLE */
+.console{background:#0a0b0e;border-radius:6px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;min-height:100px;max-height:160px;overflow-y:auto}
+.log-ok{color:var(--green)}.log-warn{color:var(--yellow)}.log-err{color:var(--red)}.log-info{color:#7289da}
+
+/* UPTIME BAR */
+.uptime-bar{display:flex;gap:2px;margin-top:6px}
+.seg{flex:1;height:6px;border-radius:2px}
+.seg-up{background:var(--green)}.seg-down{background:var(--red)}.seg-mid{background:var(--yellow)}
+
+/* SECRETS */
+.secret-row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.secret-key{flex:1;background:#0a0b0e;border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;min-width:0}
+.secret-val{flex:2;background:#0a0b0e;border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;-webkit-text-security:disc;min-width:0}
+.secret-val.show{-webkit-text-security:none}
+.secret-key:focus,.secret-val:focus{border-color:var(--accent)}
+
+/* PACKAGES */
+.pkg-item{background:#0a0b0e;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.pkg-name{font-size:12px;font-weight:700;flex:1}
+.pkg-ver{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+
+/* FILES */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:.2s;position:relative;margin-bottom:10px}
+.drop-zone.drag{border-color:var(--accent);background:#5865F210}
+.drop-zone-icon{font-size:26px;margin-bottom:6px}
+.drop-zone-text{font-size:12px;color:var(--muted)}
+.file-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#0a0b0e;border:1px solid var(--border);border-radius:6px;margin-bottom:5px}
+.file-name{flex:1;font-size:11px;font-family:'JetBrains Mono',monospace}
+.file-size{font-size:10px;color:var(--muted)}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-lbl{font-size:12px}
+.toggle-desc{font-size:10px;color:var(--muted)}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#2a2d3a;border-radius:20px;cursor:pointer;transition:.3s}
+.slider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#72767d;border-radius:50%;transition:.3s}
+input:checked+.slider{background:var(--accent)}
+input:checked+.slider:before{transform:translateX(16px);background:#fff}
+
+/* CODE EDITOR */
+.code-editor{background:#0a0b0e;border:none;border-radius:0;padding:12px;color:#abb2bf;font-size:12px;font-family:'JetBrains Mono',monospace;width:100%;min-height:240px;resize:vertical;outline:none;line-height:1.7}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Bot<span>Forge</span></div>
+  <div class="dot"></div>
+  <span class="dot-label">24/7</span>
+  <div class="spacer"></div>
+  <span class="badge badge-green">UDP ON</span>
+  <span class="badge badge-blue" id="running-count">2 RUNNING</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('dashboard',this)">Dashboard</button>
+  <button class="tab" onclick="showTab('code',this)">Code</button>
+  <button class="tab" onclick="showTab('secrets',this)">Secrets</button>
+  <button class="tab" onclick="showTab('packages',this)">Packages</button>
+  <button class="tab" onclick="showTab('files',this)">Files</button>
+  <button class="tab" onclick="showTab('settings',this)">Settings</button>
+</div>
+
+<div class="body">
+  <div class="sidebar">
+    <div class="sidebar-label">Bots</div>
+    <div class="bot-item active" onclick="selectBot(this,'Blaze Bot')">
+      <div class="avatar" style="background:#5865F2">B</div>
+      <div>
+        <div class="bot-name">Blaze Bot</div>
+        <div class="bot-status on">● running</div>
+      </div>
+    </div>
+    <div class="bot-item" onclick="selectBot(this,'Night Owl')">
+      <div class="avatar" style="background:#23d18b;color:#0e0f14">N</div>
+      <div>
+        <div class="bot-name">Night Owl</div>
+        <div class="bot-status on">● running</div>
+      </div>
+    </div>
+    <div class="bot-item" onclick="selectBot(this,'Echo Bot')">
+      <div class="avatar" style="background:#eb459e">E</div>
+      <div>
+        <div class="bot-name">Echo Bot</div>
+        <div class="bot-status off">● stopped</div>
+      </div>
+    </div>
+    <button class="add-bot" onclick="addBot()">＋ Add Bot</button>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title" id="bot-title">Blaze Bot — Overview</span>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-red btn-sm" id="toggle-btn" onclick="toggleBot(this)">Stop</button>
+            <button class="btn btn-ghost btn-sm" onclick="log('Restarting...','warn');setTimeout(()=>log('Bot restarted','ok'),1200)">Restart</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-val" style="color:var(--green)" id="uptime-val">14d 6h</div>
+              <div class="metric-lbl">Uptime</div>
+            </div>
+            <div class="metric">
+              <div class="metric-val" style="color:#7289da">42MB</div>
+              <div class="metric-lbl">Memory</div>
+            </div>
+            <div class="metric">
+              <div class="metric-val">1.2%</div>
+              <div class="metric-lbl">CPU</div>
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:3px">Last 30 days uptime</div>
+            <div class="uptime-bar" id="uptime-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Live Console</span>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('console').innerHTML=''">Clear</button>
+        </div>
+        <div id="console" class="console">
+          <div class="log-ok">[22:10:01] Connected to Discord gateway</div>
+          <div class="log-info">[22:10:02] Registered 12 slash commands</div>
+          <div class="log-ok">[22:10:05] Ready — serving 3 guilds</div>
+          <div class="log-warn">[22:12:34] Rate limit hit — retrying in 2s</div>
+          <div class="log-ok">[22:12:36] Rate limit cleared</div>
+          <div class="log-info">[22:14:00] Heartbeat ACK (52ms)</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="card-title">Quick Actions</span></div>
+        <div class="card-body" style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-accent btn-sm" onclick="log('Pulling from GitHub...','info');setTimeout(()=>log('Pull complete ✓','ok'),1500)">Pull GitHub</button>
+          <button class="btn btn-ghost btn-sm" onclick="log('Rebuilding bot...','warn');setTimeout(()=>log('Build complete ✓','ok'),2000)">Rebuild</button>
+          <button class="btn btn-ghost btn-sm" onclick="log('UDP keepalive ping sent','ok')">UDP Ping</button>
+          <button class="btn btn-ghost btn-sm" onclick="log('Fetching bot stats...','info')">Stats</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div id="page-code" class="page">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">index.js</span>
+          <div style="display:flex;gap:5px;align-items:center">
+            <span class="badge badge-blue">node 20</span>
+            <button class="btn btn-green btn-sm" onclick="log('Deploying...','info');setTimeout(()=>{log('Deploy success ✓','ok');showTab('dashboard',document.querySelectorAll('.tab')[0])},1000)">Deploy</button>
+          </div>
+        </div>
+        <textarea class="code-editor" spellcheck="false">const { Client, GatewayIntentBits } = require('discord.js');
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ]
+});
+
+client.on('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
+});
+
+client.on('messageCreate', msg => {
+  if (msg.content === '!ping') {
+    msg.reply('Pong! 🏓');
+  }
+});
+
+client.login(process.env.BOT_TOKEN);</textarea>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="field">
+            <label>Start Command</label>
+            <input value="node index.js"/>
+          </div>
+          <div class="field">
+            <label>Runtime</label>
+            <select>
+              <option>Node.js 20</option>
+              <option>Node.js 18</option>
+              <option>Python 3.11</option>
+              <option>Bun</option>
+              <option>Deno</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRETS -->
+    <div id="page-secrets" class="page">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">Environment Secrets</span>
+          <button class="btn btn-accent btn-sm" onclick="addSecret()">+ Add</button>
+        </div>
+        <div class="card-body" id="secret-list">
+          <div class="secret-row">
+            <input class="secret-key" value="BOT_TOKEN" placeholder="KEY"/>
+            <input class="secret-val" value="MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.token" placeholder="VALUE"/>
+            <button class="btn btn-ghost btn-sm" onclick="toggleSecret(this)">Show</button>
+            <button class="btn btn-red btn-sm" onclick="this.closest('.secret-row').remove()">✕</button>
+          </div>
+          <div class="secret-row">
+            <input class="secret-key" value="GUILD_ID" placeholder="KEY"/>
+            <input class="secret-val" value="987654321098765432" placeholder="VALUE"/>
+            <button class="btn btn-ghost btn-sm" onclick="toggleSecret(this)">Show</button>
+            <button class="btn btn-red btn-sm" onclick="this.closest('.secret-row').remove()">✕</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">Encrypt at rest</div><div class="toggle-desc">AES-256 for stored vars</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">Sync to GitHub Actions</div><div class="toggle-desc">Push secrets to repo</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PACKAGES -->
+    <div id="page-packages" class="page">
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">npm Packages</span>
+          <div style="display:flex;gap:5px">
+            <input id="pkg-input" placeholder="package name" style="background:#0a0b0e;border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;outline:none;width:110px"/>
+            <button class="btn btn-accent btn-sm" onclick="installPkg()">Install</button>
+          </div>
+        </div>
+        <div class="card-body" id="pkg-list">
+          <div class="pkg-item">
+            <div>
+              <div class="pkg-name">discord.js</div>
+              <div class="pkg-ver">v14.14.1</div>
+            </div>
+            <div class="spacer"></div>
+            <span class="badge badge-green">installed</span>
+            <button class="btn btn-red btn-sm" style="margin-left:6px" onclick="this.closest('.pkg-item').remove()">✕</button>
+          </div>
+          <div class="pkg-item">
+            <div>
+              <div class="pkg-name">dotenv</div>
+              <div class="pkg-ver">v16.3.1</div>
+            </div>
+            <div class="spacer"></div>
+            <span class="badge badge-green">installed</span>
+            <button class="btn btn-red btn-sm" style="margin-left:6px" onclick="this.closest('.pkg-item').remove()">✕</button>
+          </div>
+          <div class="pkg-item">
+            <div>
+              <div class="pkg-name">axios</div>
+              <div class="pkg-ver">v1.6.7</div>
+            </div>
+            <div class="spacer"></div>
+            <span class="badge badge-green">installed</span>
+            <button class="btn btn-red btn-sm" style="margin-left:6px" onclick="this.closest('.pkg-item').remove()">✕</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILES -->
+    <div id="page-files" class="page">
+      <div class="card">
+        <div class="card-head"><span class="card-title">File Manager</span></div>
+        <div class="card-body">
+          <div class="drop-zone" id="drop-zone"
+            ondragover="event.preventDefault();this.classList.add('drag')"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="handleDrop(event)">
+            <div class="drop-zone-icon">📂</div>
+            <div class="drop-zone-text"><strong>Drag files here</strong> or tap to browse</div>
+            <div class="drop-zone-text" style="font-size:10px;margin-top:3px">Any file type supported</div>
+            <input type="file" multiple style="position:absolute;inset:0;opacity:0;cursor:pointer" onchange="handleFiles(this)"/>
+          </div>
+          <div id="file-list">
+            <div class="file-item">
+              <span>📄</span>
+              <span class="file-name">index.js</span>
+              <span class="file-size">2.1 KB</span>
+              <button class="btn btn-ghost btn-sm" onclick="this.closest('.file-item').remove()">✕</button>
+            </div>
+            <div class="file-item">
+              <span>📦</span>
+              <span class="file-name">package.json</span>
+              <span class="file-size">0.8 KB</span>
+              <button class="btn btn-ghost btn-sm" onclick="this.closest('.file-item').remove()">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="card">
+        <div class="card-head"><span class="card-title">Keep-Alive & Network</span></div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">UDP Keep-Alive</div><div class="toggle-desc">Ping every 25s — prevents sleep</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">Auto-Restart on Crash</div><div class="toggle-desc">Restart within 3s of exit</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">Start on Boot</div><div class="toggle-desc">Auto-start after reboot</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div><div class="toggle-lbl">GitHub Actions CI/CD</div><div class="toggle-desc">Deploy on push to main</div></div>
+            <label class="toggle"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">GitHub Integration</span></div>
+        <div class="card-body">
+          <div class="field">
+            <label>Repository URL</label>
+            <input placeholder="https://github.com/you/bot-repo"/>
+          </div>
+          <div class="field">
+            <label>Branch</label>
+            <input value="main"/>
+          </div>
+          <div class="field">
+            <label>Personal Access Token</label>
+            <input type="password" placeholder="ghp_..."/>
+          </div>
+          <button class="btn btn-accent" onclick="log('GitHub connected ✓','ok');showTab('dashboard',document.querySelectorAll('.tab')[0])">Save & Connect</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end body -->
+
+<script>
+// Tab switching
+function showTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+// Bot selection
+function selectBot(el, name) {
+  document.querySelectorAll('.bot-item').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('bot-title').textContent = name + ' — Overview';
+}
+
+// Add bot
+function addBot() {
+  const name = prompt('Bot name:');
+  if (!name) return;
+  const colors = ['#5865F2','#23d18b','#eb459e','#fee75c','#ed4245'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const sb = document.querySelector('.sidebar');
+  const addBtn = document.querySelector('.add-bot');
+  const div = document.createElement('div');
+  div.className = 'bot-item';
+  div.innerHTML = `<div class="avatar" style="background:${color}">${name[0].toUpperCase()}</div><div><div class="bot-name">${name}</div><div class="bot-status off">● stopped</div></div>`;
+  div.onclick = function(){ selectBot(this, name); };
+  sb.insertBefore(div, addBtn);
+  log('Bot "' + name + '" added', 'ok');
+}
+
+// Toggle bot on/off
+function toggleBot(btn) {
+  const on = btn.textContent === 'Stop';
+  btn.textContent = on ? 'Start' : 'Stop';
+  btn.className = on ? 'btn btn-green btn-sm' : 'btn btn-red btn-sm';
+  log(on ? 'Bot stopped.' : 'Bot started.', on ? 'err' : 'ok');
+}
+
+// Console log
+function log(msg, type) {
+  const c = document.getElementById('console');
+  if (!c) return;
+  const t = new Date().toTimeString().slice(0,8);
+  const d = document.createElement('div');
+  d.className = 'log-' + (type || 'ok');
+  d.textContent = '[' + t + '] ' + msg;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+  // Switch to dashboard to show
+  const dashTab = document.querySelectorAll('.tab')[0];
+  showTab('dashboard', dashTab);
+}
+
+// Secrets
+function addSecret() {
+  const list = document.getElementById('secret-list');
+  const row = document.createElement('div');
+  row.className = 'secret-row';
+  row.innerHTML = `<input class="secret-key" placeholder="KEY"/><input class="secret-val" placeholder="VALUE"/><button class="btn btn-ghost btn-sm" onclick="toggleSecret(this)">Show</button><button class="btn btn-red btn-sm" onclick="this.closest('.secret-row').remove()">✕</button>`;
+  list.appendChild(row);
+  row.querySelector('.secret-key').focus();
+}
+function toggleSecret(btn) {
+  const v = btn.previousElementSibling;
+  btn.textContent = v.classList.toggle('show') ? 'Hide' : 'Show';
+}
+
+// Packages
+function installPkg() {
+  const inp = document.getElementById('pkg-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  const list = document.getElementById('pkg-list');
+  const div = document.createElement('div');
+  div.className = 'pkg-item';
+  div.innerHTML = `<div><div class="pkg-name">${name}</div><div class="pkg-ver">latest</div></div><div class="spacer"></div><span class="badge badge-green">installed</span><button class="btn btn-red btn-sm" style="margin-left:6px" onclick="this.closest('.pkg-item').remove()">✕</button>`;
+  list.appendChild(div);
+  log('npm install ' + name + ' ✓', 'ok');
+  inp.value = '';
+}
+
+// Files
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  addFiles(Array.from(e.dataTransfer.files));
+}
+function handleFiles(inp) { addFiles(Array.from(inp.files)); }
+function addFiles(files) {
+  const list = document.getElementById('file-list');
+  files.forEach(f => {
+    const icon = f.name.endsWith('.js') ? '📄' : f.name.endsWith('.json') ? '📦' : '📁';
+    const size = f.size < 1024 ? f.size + 'B' : f.size < 1048576 ? (f.size/1024).toFixed(1) + 'KB' : (f.size/1048576).toFixed(1) + 'MB';
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.innerHTML = `<span>${icon}</span><span class="file-name">${f.name}</span><span class="file-size">${size}</span><button class="btn btn-ghost btn-sm" onclick="this.closest('.file-item').remove()">✕</button>`;
+    list.appendChild(div);
+  });
+  log('Uploaded ' + files.length + ' file(s)', 'ok');
+}
+
+// Uptime bar
+const bar = document.getElementById('uptime-bar');
+for (let i = 0; i < 30; i++) {
+  const s = document.createElement('div');
+  s.className = 'seg ' + (i === 12 ? 'seg-down' : i === 20 ? 'seg-mid' : 'seg-up');
+  bar.appendChild(s);
+}
+
+// Uptime ticker
+let sec = 14*86400 + 6*3600;
+setInterval(() => {
+  sec++;
+  const d = Math.floor(sec/86400), h = Math.floor((sec%86400)/3600), m = Math.floor((sec%3600)/60);
+  const el = document.getElementById('uptime-val');
+  if (el) el.textContent = d + 'd ' + h + 'h ' + m + 'm';
+}, 1000);
+
+// Try to get real bot data from Android if available
+try {
+  if (window.Android) {
+    const bots = JSON.parse(window.Android.getRunningBots());
+    const running = bots.filter(b => b.status === 'running').length;
+    document.getElementById('running-count').textContent = running + ' RUNNING';
+  }
+} catch(e) {}
+</script>
+</body>
+</html>
